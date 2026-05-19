@@ -1,0 +1,46 @@
+text,category,expected_label
+"Bought an umbrella that broke on day one — turns out it was waterproof to my disappointment, not the rain.",irony,negative
+"Ordered a 'silent' laptop fan. My neighbors now know all my browsing habits.",irony,negative
+"The 'fast charger' got my phone from 20% to 22% in an hour. Truly revolutionary technology.",irony,negative
+"Booked a 'quiet boutique hotel' next to a nightclub. Slept like a baby — one that cries all night.",irony,negative
+"The self-cleaning oven cleaned itself so thoroughly it cleaned right off the warranty.",irony,negative
+"Ordered the 'space-saving' folding bike — the only space it saves is in my hallway, where it now permanently lives because I can't actually fold it.",irony,negative
+"Got the 'unbreakable' phone case. Phone is fine. The case has a crack right down the middle.",irony,negative
+"Bought 'premium noise-cancelling' earbuds. The only noise they don't cancel is their own static.",irony,negative
+"The smart fridge was so smart it ordered me 47 cartons of oat milk while I was on vacation.",irony,negative
+"Subscribed to the 'lose weight without exercise' app. Lost €30 a month and gained nothing else.",irony,negative
+"Oh fantastic, another streaming service that needs three remotes and a PhD to navigate. Just what I needed.",sarcasm,negative
+"Wow, $18 for a soggy salad with two croutons. Steal of the century, really.",sarcasm,negative
+"Customer service was SO helpful — only took 47 minutes on hold to be told they couldn't help me.",sarcasm,negative
+"Sure, charge me extra for 'premium' seats with two inches more legroom. Best $80 I've ever spent.",sarcasm,negative
+"Love how the app updates every single day with new bugs. Keeps life exciting.",sarcasm,negative
+"Brilliant move, putting the power button on the bottom of the laptop. Truly user-centric design.",sarcasm,negative
+"Oh excellent, the WiFi router needs to be unplugged twice a day. Adds such a fun ritual to my morning.",sarcasm,negative
+"Just lovely — dish arrived cold, late, and missing the main ingredient. Five stars all around.",sarcasm,negative
+"Of course the printer ran out of colour ink to print a black-and-white document. Modern engineering at its finest.",sarcasm,negative
+"Amazing how my €200 'waterproof' watch lasted exactly one shower. Worth every cent.",sarcasm,negative
+"This vacuum doesn't suck — and I mean it doesn't pick up anything off the carpet.",negation,negative
+"Not the worst pizza I've ever had, but I wouldn't order it again.",negation,negative
+"The hotel wasn't dirty, wasn't loud, wasn't uncomfortable. Just nothing memorable either.",negation,neutral
+"I can't say I disliked the movie, but I won't be recommending it to friends.",negation,negative
+"No issues with shipping, no problems with packaging, no complaints really — except the product itself didn't work.",negation,negative
+"The chair isn't unstable and the cushion isn't uncomfortable — but I wouldn't say I love it either.",negation,neutral
+"Doesn't deliver on speed, doesn't deliver on accuracy, doesn't deliver on price. Skip it.",negation,negative
+"Not bad, not great. Just exists.",negation,neutral
+"Instructions weren't clear, parts weren't labelled, and the end result wasn't what I expected.",negation,negative
+"I don't hate the colour, and the size isn't wrong — but the fabric? No way I'm keeping this.",negation,negative
+"Great battery life and a beautiful screen, but the keyboard is mushy and it overheats after 20 minutes.",multipolarity,negative
+"Food was outstanding, service was painfully slow, and the place smelled like bleach the whole time.",multipolarity,negative
+"The actors were incredible, the cinematography stunning, but the script felt like it was written in a weekend.",multipolarity,negative
+"Comfortable bed and friendly staff, although the bathroom was tiny and the walls paper-thin.",multipolarity,negative
+"Love the design and the price, hate the durability — broke within a month of light use.",multipolarity,negative
+"Excellent picture quality and a fair price — but the remote feels like a children's toy and the menus are unintuitive.",multipolarity,negative
+"Loved the room and the breakfast was incredible. Check-in took an hour and the parking cost more than the room itself.",multipolarity,negative
+"Quick shipping, perfect packaging, exactly what I ordered — pity the product itself stopped working after a week.",multipolarity,negative
+"Stylish, lightweight, and fits perfectly. Zipper broke after three uses.",multipolarity,negative
+"Coffee was great, atmosphere was lovely, and prices were fair — but the staff was openly rude to a customer beside me.",multipolarity,negative
+"Setup was a nightmare and the manual is in three languages I don't speak — but once it's running, this little espresso machine is fantastic.",multipolarity,positive
+"The driver was 40 minutes late and clearly grumpy. The food, though, was probably the best Thai I've had this year.",multipolarity,positive
+"Boring lobby, lukewarm welcome, weirdly creaky elevator — but the room itself was huge, spotless, and the view was worth the trip.",multipolarity,positive
+"First week I was ready to send it back: confusing UI, sluggish performance. Now I use it every day and can't imagine going without it.",multipolarity,positive
+"Expensive, slightly noisy, and the design isn't winning any awards — but it just works, every single time.",multipolarity,positive
