@@ -15,7 +15,6 @@ SENTIMENT_MODEL = "cardiffnlp/twitter-roberta-base-sentiment-latest"
 IRONY_MODEL = "cardiffnlp/twitter-roberta-base-irony"
 
 SAMPLE_REVIEWS: list[dict[str, str]] = [
-    # --- Drafted by Claude ---
     {
         "category": "clear positive",
         "text": "Honestly the best laptop I've ever owned. Battery lasts all day, the screen is gorgeous, and it boots in under five seconds. Worth every penny.",
@@ -40,7 +39,6 @@ SAMPLE_REVIEWS: list[dict[str, str]] = [
         "category": "negated",
         "text": "Doesn't work as described. Battery life isn't even close to 12 hours — more like 4 — and the charger isn't even the right one for my region.",
     },
-    # --- Drafted by Alberto ---
     {
         "category": "clear positive",
         "text": "This food supplement changed my life! I totally feel better now, I have more energy during the day and sleep better at night. Recommended!",

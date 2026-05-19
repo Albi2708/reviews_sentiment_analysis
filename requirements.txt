@@ -1,3 +1,5 @@
 datasets
 torch
 transformers
+spacy
+ftfy
