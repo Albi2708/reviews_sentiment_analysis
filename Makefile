@@ -1,4 +1,4 @@
-.PHONY: install run test eval
+.PHONY: install run ui test eval
 
 install:
 	pip install -r requirements.txt
@@ -6,6 +6,9 @@ install:
 
 run:
 	uvicorn api:app --reload
+
+ui:
+	streamlit run ui.py
 
 test:
 	pytest
