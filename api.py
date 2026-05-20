@@ -14,12 +14,14 @@ Run with ``make run`` or ``uvicorn api:app --reload``.
 """
 from __future__ import annotations
 
+import time
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Literal
 
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+import db
 from pipeline import Label, analyze
 
 # --- Pydantic schemas ------------------------------------------------------
@@ -123,13 +125,17 @@ _models_warm = False
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Eagerly warm the pipeline so the first real request isn't slow.
+    """Initialize the prediction log schema and warm the pipeline.
 
-    Calling :func:`pipeline.analyze` once at startup forces the three
-    lazy ``functools.cache`` singletons in ``pipeline.py`` (sentiment,
-    irony, spaCy) to load before the server starts accepting traffic.
+    ``db.init_schema()`` runs first so a broken DB surfaces as a startup
+    error rather than a silent loss of rows at request time. The warmup
+    ``analyze("warmup")`` call then forces the three lazy
+    ``functools.cache`` singletons in ``pipeline.py`` (sentiment, irony,
+    spaCy) to load before the server accepts traffic; that warmup call
+    is internal and is **not** logged to the predictions table.
     """
     global _models_warm
+    db.init_schema()
     analyze("warmup")
     _models_warm = True
     yield
@@ -160,8 +166,18 @@ def analyze_endpoint(payload: AnalyzeRequest) -> dict:
     Declared as a sync handler on purpose: HuggingFace inference is
     blocking, and FastAPI dispatches sync endpoints to a threadpool, so
     the event loop is not stalled while a request is in flight.
+
+    Side effect: persists one row to the predictions log via
+    :func:`db.log_prediction`. The latency reported there is the
+    pipeline-only ``analyze()`` duration in milliseconds — it excludes
+    request parsing and response serialization. Logging failures do not
+    propagate to the client.
     """
-    return analyze(payload.text)
+    start = time.perf_counter()
+    result = analyze(payload.text)
+    latency_ms = (time.perf_counter() - start) * 1000.0
+    db.log_prediction(result, latency_ms)
+    return result
 
 
 @app.get(
