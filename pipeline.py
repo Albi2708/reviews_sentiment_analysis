@@ -152,7 +152,7 @@ def _get_nlp():
 
 def _predict_sentiment(text: str) -> dict[str, Any]:
     """Run the sentiment model and return top label + full 3-class distribution."""
-    raw = _get_sentiment_pipe()(text, truncation=True)[0]
+    raw = _get_sentiment_pipe()(text, truncation=True, max_length=512)[0]
     distribution: dict[str, float] = {
         item["label"].lower(): float(item["score"]) for item in raw
     }
@@ -168,7 +168,7 @@ def _predict_sentiment(text: str) -> dict[str, Any]:
 
 def _predict_irony(text: str) -> dict[str, Any]:
     """Run the irony model and return its top label + confidence."""
-    out = _get_irony_pipe()(text, truncation=True)[0]
+    out = _get_irony_pipe()(text, truncation=True, max_length=512)[0]
     return {"label": out["label"].lower(), "confidence": float(out["score"])}
 
 

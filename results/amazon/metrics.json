@@ -1,0 +1,49 @@
+{
+  "n": 498,
+  "accuracy": 0.5923694779116466,
+  "macro_f1": 0.556094347563903,
+  "labels": [
+    "negative",
+    "neutral",
+    "positive"
+  ],
+  "per_class": {
+    "negative": {
+      "precision": 0.551440329218107,
+      "recall": 0.8072289156626506,
+      "f1": 0.6552567237163814,
+      "support": 166
+    },
+    "neutral": {
+      "precision": 0.5147058823529411,
+      "recall": 0.21084337349397592,
+      "f1": 0.29914529914529914,
+      "support": 166
+    },
+    "positive": {
+      "precision": 0.6737967914438503,
+      "recall": 0.7590361445783133,
+      "f1": 0.7138810198300283,
+      "support": 166
+    }
+  },
+  "confusion_matrix": [
+    [
+      134,
+      20,
+      12
+    ],
+    [
+      82,
+      35,
+      49
+    ],
+    [
+      27,
+      13,
+      126
+    ]
+  ],
+  "source": "McAuley-Lab/Amazon-Reviews-2023 / raw_review_Electronics",
+  "seed": 42
+}

@@ -1,4 +1,4 @@
-datasets
+datasets<4.0
 torch
 transformers
 spacy
@@ -7,3 +7,4 @@ fastapi
 uvicorn
 streamlit
 requests
+scikit-learn
