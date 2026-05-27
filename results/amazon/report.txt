@@ -1,16 +1,16 @@
 source     = McAuley-Lab/Amazon-Reviews-2023 / raw_review_Electronics
 seed       = 42
 n          = 498
-accuracy   = 0.5924
-macro-F1   = 0.5561
+accuracy   = 0.5683
+macro-F1   = 0.5418
 
 Per-class metrics:
-  negative   precision=0.551  recall=0.807  f1=0.655  support=166
-  neutral    precision=0.515  recall=0.211  f1=0.299  support=166
-  positive   precision=0.674  recall=0.759  f1=0.714  support=166
+  negative   precision=0.516  recall=0.777  f1=0.620  support=166
+  neutral    precision=0.569  recall=0.247  f1=0.345  support=166
+  positive   precision=0.642  recall=0.681  f1=0.661  support=166
 
 Confusion matrix (rows=true, cols=pred):
                 negative    neutral   positive
-  true_negative       134         20         12
-  true_neutral         82         35         49
-  true_positive        27         13        126
+  true_negative       129         23         14
+  true_neutral         76         41         49
+  true_positive        45          8        113

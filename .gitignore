@@ -38,3 +38,9 @@ Dev Docs/
 
 # Data — never committed; populated locally
 data/
+
+# Logs
+*.log
+
+# Sweep inference cache — regenerable via `make sweep`; embeds dataset review text
+results/sweep/cache/

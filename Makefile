@@ -1,4 +1,4 @@
-.PHONY: install run ui test eval
+.PHONY: install run ui test eval sweep
 
 install:
 	pip install -r requirements.txt
@@ -15,3 +15,6 @@ test:
 
 eval:
 	python evaluate.py
+
+sweep:
+	python sweep.py

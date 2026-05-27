@@ -24,14 +24,14 @@ from transformers import pipeline as hf_pipeline
 # Below this, the aggregate prediction is flagged low-confidence. Also gates
 # the irony correction: positive + irony fires + sentiment conf >= this →
 # invert to negative; otherwise → downgrade to neutral.
-LOW_CONF_THRESHOLD = 0.60
+LOW_CONF_THRESHOLD = 0.70
 
 # Irony detector confidence at or above this counts as the detector firing.
-IRONY_HIGH_CONF_THRESHOLD = 0.70
+IRONY_HIGH_CONF_THRESHOLD = 0.50
 
 # Top-class sentiment probability below this on the full-review pass triggers
 # the multipolarity branch (segment + last-clause-wins aggregate).
-MULTIPOLARITY_TOP_CLASS_THRESHOLD = 0.45
+MULTIPOLARITY_TOP_CLASS_THRESHOLD = 0.60
 
 # --- Model identifiers (concept doc §2 / §5) -------------------------------
 
