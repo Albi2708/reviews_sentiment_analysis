@@ -20,10 +20,12 @@ Output layout (under ``--out-dir``, default ``results/``):
       amazon/
         metrics.json
         confusion_matrix.csv
+        confusion_matrix.png
         report.txt
       phenomenon/
         metrics.json
         confusion_matrix.csv
+        confusion_matrix.png
         report.txt
 
 Run with ``make eval`` or ``python evaluate.py``. The script calls
@@ -175,6 +177,38 @@ def _format_confusion_matrix(cm: list[list[int]]) -> list[str]:
     return lines
 
 
+def _save_confusion_heatmap(cm: list[list[int]], out_path: Path) -> None:
+    """Render the confusion matrix as a labelled annotated heatmap PNG.
+
+    matplotlib is imported lazily so this module stays importable for
+    callers that don't need the figure output (e.g. ``sweep.py``).
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    im = ax.imshow(cm, cmap="Blues")
+    ax.set_xticks(range(len(LABELS)))
+    ax.set_yticks(range(len(LABELS)))
+    ax.set_xticklabels([f"pred_{l}" for l in LABELS])
+    ax.set_yticklabels([f"true_{l}" for l in LABELS])
+    plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("True")
+
+    threshold = max((max(row) for row in cm), default=0) / 2
+    for i, row in enumerate(cm):
+        for j, v in enumerate(row):
+            color = "white" if v > threshold else "black"
+            ax.text(j, i, str(v), ha="center", va="center", color=color)
+
+    fig.colorbar(im, ax=ax)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
 def write_results(
     out_dir: Path,
     y_true: list[str],
@@ -213,6 +247,8 @@ def write_results(
         writer.writerow([""] + [f"pred_{l}" for l in LABELS])
         for label, row in zip(LABELS, cm):
             writer.writerow([f"true_{label}"] + row)
+
+    _save_confusion_heatmap(cm, out_dir / "confusion_matrix.png")
 
     lines: list[str] = []
     if "source" in (extra or {}):
