@@ -9,3 +9,4 @@ streamlit
 requests
 scikit-learn
 matplotlib
+pytest
