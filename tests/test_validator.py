@@ -1,11 +1,9 @@
 """Unit tests for the validator branches in :func:`pipeline.analyze`.
 
-Each test pins the model wrappers (``preprocess``, ``_predict_sentiment``,
-``_predict_irony``) to deterministic fakes, so the branch logic — irony
-correction, the multipolarity / last-clause-wins rule, the low-confidence
-flag, and their precedence — is exercised in isolation from the real
-transformers. Thresholds under test (locked at roadmap item 4):
-``LOW_CONF=0.70``, ``IRONY_HIGH_CONF=0.50``, ``MULTIPOLARITY_TOP_CLASS=0.60``.
+The model wrappers are monkeypatched with deterministic fakes so the branch
+logic (irony correction, last-clause-wins, low-confidence gate, and their
+precedence) is exercised without the real transformers. Locked thresholds:
+LOW_CONF=0.70, IRONY_HIGH_CONF=0.50, MULTIPOLARITY_TOP_CLASS=0.60.
 """
 from __future__ import annotations
 
@@ -15,8 +13,6 @@ import pytest
 
 import pipeline
 
-
-# --- Fakes -----------------------------------------------------------------
 
 def _distribution(dist: dict[str, float]) -> dict[str, Any]:
     """Build a sentiment result (label = argmax) from a partial distribution."""
@@ -37,10 +33,8 @@ def _install(
 ) -> None:
     """Patch the pipeline's model wrappers with text-keyed fakes.
 
-    ``sentiment`` maps an exact input string (the full ``model_input`` and any
-    per-segment text the branch will score) to a partial class distribution.
-    A lookup miss raises ``KeyError`` so a mis-specified test fails loudly
-    rather than silently scoring the wrong text.
+    ``sentiment`` maps an exact input string to a partial distribution; a
+    lookup miss raises ``KeyError`` so a mis-specified test fails loudly.
     """
     monkeypatch.setattr(
         pipeline,
@@ -61,9 +55,7 @@ def _install(
     )
 
 
-# --- No-flag baseline (also asserts the full output schema) ----------------
-
-def test_clear_positive_no_flags(monkeypatch):
+def test_clear_positive_no_flags(monkeypatch: pytest.MonkeyPatch) -> None:
     """High-confidence single-polarity review: no flags, full schema present."""
     _install(
         monkeypatch,
@@ -92,9 +84,7 @@ def test_clear_positive_no_flags(monkeypatch):
     assert set(out["irony"]) == {"label", "confidence"}
 
 
-# --- Low-confidence flag ---------------------------------------------------
-
-def test_low_confidence_flag_only(monkeypatch):
+def test_low_confidence_flag_only(monkeypatch: pytest.MonkeyPatch) -> None:
     """Confidence in [0.60, 0.70): low-confidence flag fires, nothing else."""
     _install(
         monkeypatch,
@@ -111,9 +101,7 @@ def test_low_confidence_flag_only(monkeypatch):
     assert out["segments"] is None
 
 
-# --- Irony correction branch -----------------------------------------------
-
-def test_irony_inverts_confident_positive_to_negative(monkeypatch):
+def test_irony_inverts_confident_positive_to_negative(monkeypatch: pytest.MonkeyPatch) -> None:
     """positive + irony + conf >= LOW_CONF → invert to negative."""
     _install(
         monkeypatch,
@@ -133,7 +121,7 @@ def test_irony_inverts_confident_positive_to_negative(monkeypatch):
     assert out["segments"] is None
 
 
-def test_irony_downgrades_uncertain_positive_to_neutral(monkeypatch):
+def test_irony_downgrades_uncertain_positive_to_neutral(monkeypatch: pytest.MonkeyPatch) -> None:
     """positive + irony + conf < LOW_CONF → downgrade to neutral."""
     _install(
         monkeypatch,
@@ -152,7 +140,7 @@ def test_irony_downgrades_uncertain_positive_to_neutral(monkeypatch):
     assert out["sentiment_raw"]["label"] == "positive"
 
 
-def test_irony_keeps_negative_label(monkeypatch):
+def test_irony_keeps_negative_label(monkeypatch: pytest.MonkeyPatch) -> None:
     """irony + an already-negative label leaves the label untouched."""
     _install(
         monkeypatch,
@@ -170,7 +158,7 @@ def test_irony_keeps_negative_label(monkeypatch):
     assert out["segments"] is None
 
 
-def test_irony_keeps_neutral_label(monkeypatch):
+def test_irony_keeps_neutral_label(monkeypatch: pytest.MonkeyPatch) -> None:
     """irony + an already-neutral label leaves the label untouched."""
     _install(
         monkeypatch,
@@ -187,7 +175,7 @@ def test_irony_keeps_neutral_label(monkeypatch):
     assert out["segments"] is None
 
 
-def test_irony_below_threshold_does_not_correct(monkeypatch):
+def test_irony_below_threshold_does_not_correct(monkeypatch: pytest.MonkeyPatch) -> None:
     """irony label but conf < IRONY_HIGH_CONF: gate stays closed, no correction."""
     _install(
         monkeypatch,
@@ -203,9 +191,7 @@ def test_irony_below_threshold_does_not_correct(monkeypatch):
     assert out["flags"]["model_agreement"] is False
 
 
-# --- Multipolarity branch (last-clause wins) -------------------------------
-
-def test_multipolarity_last_clause_wins_multi_sentence(monkeypatch):
+def test_multipolarity_last_clause_wins_multi_sentence(monkeypatch: pytest.MonkeyPatch) -> None:
     """Low full-pass confidence + multi-sentence: last segment decides the label."""
     first = "The screen is gorgeous."
     last = "But the battery dies in an hour."
@@ -231,7 +217,7 @@ def test_multipolarity_last_clause_wins_multi_sentence(monkeypatch):
     assert out["segments"][-1]["label"] == out["label"]
 
 
-def test_multipolarity_clause_fallback_single_sentence(monkeypatch):
+def test_multipolarity_clause_fallback_single_sentence(monkeypatch: pytest.MonkeyPatch) -> None:
     """spaCy returns one sentence → the clause splitter rescues the segment view."""
     text = "Great materials but the balancing is a complete mess."
     clauses = pipeline._clause_split(text)
@@ -255,11 +241,9 @@ def test_multipolarity_clause_fallback_single_sentence(monkeypatch):
     assert out["confidence"] == pytest.approx(0.90)
 
 
-# --- Branch precedence: irony wins, segment view stays informational -------
-
-def test_both_flags_uses_matching_segment_confidence(monkeypatch):
-    """Both flags fire: irony resolves the label; matching last segment lends its
-    in-context confidence in place of the diluted raw value."""
+def test_both_flags_uses_matching_segment_confidence(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Both flags fire: irony resolves the label; the matching last segment lends
+    its in-context confidence in place of the diluted raw value."""
     first = "Looks nice."
     last = "Completely useless though."
     full = first + " " + last
@@ -285,7 +269,7 @@ def test_both_flags_uses_matching_segment_confidence(monkeypatch):
     assert len(out["segments"]) == 2
 
 
-def test_both_flags_mismatched_segment_keeps_raw_confidence(monkeypatch):
+def test_both_flags_mismatched_segment_keeps_raw_confidence(monkeypatch: pytest.MonkeyPatch) -> None:
     """Both flags fire but the last segment disagrees with the resolved label →
     the raw full-pass confidence is kept rather than an unrelated segment's."""
     first = "Hate the setup."

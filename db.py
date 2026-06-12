@@ -1,18 +1,9 @@
 """SQLite logging for ``/analyze`` predictions.
 
-Each successful call to :func:`pipeline.analyze` invoked by the FastAPI
-handler is persisted as one row in the ``predictions`` table at
-:data:`DB_PATH`. The schema is created on first access via
-:func:`init_schema` — no separate migration step.
-
-Failure semantics differ by stage:
-
-* :func:`init_schema` is called at startup and **raises** on failure, so a
-  broken DB surfaces immediately as a misconfiguration instead of silently
-  losing rows.
-* :func:`log_prediction` is called per request and **swallows** errors
-  (logs to stderr), so a transient DB issue can never break the API
-  response that just succeeded.
+Each successful call logged by the FastAPI handler becomes one row in the
+``predictions`` table at :data:`DB_PATH`; the schema is created on first
+access. :func:`init_schema` raises on failure (called at startup), while
+:func:`log_prediction` swallows errors so logging can never break a response.
 """
 from __future__ import annotations
 
@@ -49,14 +40,10 @@ _INSERT_SQL: str = (
 
 
 def init_schema(db_path: Path | None = None) -> None:
-    """Create the ``predictions`` table if it does not already exist.
+    """Create the ``predictions`` table if absent (idempotent).
 
-    Called once from the FastAPI ``lifespan`` handler at startup. Safe to
-    call repeatedly: ``CREATE TABLE IF NOT EXISTS`` is idempotent.
-
-    ``db_path`` is read at call time (not bound as a default) so tests
-    and evaluation scripts can redirect by patching :data:`DB_PATH` on
-    the module.
+    ``db_path`` is read at call time, not bound as a default, so tests can
+    redirect by patching :data:`DB_PATH` on the module.
     """
     path = db_path if db_path is not None else DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -69,17 +56,15 @@ def log_prediction(
     latency_ms: float,
     db_path: Path | None = None,
 ) -> None:
-    """Persist a single ``/analyze`` result, best-effort.
+    """Persist one ``/analyze`` result, best-effort.
 
     Args:
         result: The dict returned by :func:`pipeline.analyze`.
         latency_ms: Time spent inside ``analyze()``, in milliseconds.
-        db_path: Override for the SQLite file (mainly for tests). When
-            ``None`` (the default), :data:`DB_PATH` is read at call time
-            so module-level monkey-patching works as expected.
+        db_path: SQLite file override (mainly for tests); when ``None``,
+            :data:`DB_PATH` is read at call time.
 
-    On any sqlite error this writes one warning to stderr and returns
-    normally — the API's response must not depend on logging success.
+    On any sqlite error this warns to stderr and returns normally.
     """
     path = db_path if db_path is not None else DB_PATH
     try:

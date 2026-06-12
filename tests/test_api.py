@@ -1,14 +1,15 @@
 """Integration tests for the FastAPI ``/analyze`` and ``/health`` endpoints.
 
-Runs the real pipeline end-to-end through FastAPI's ``TestClient``: the app's
-lifespan warms the actual Cardiff + spaCy models, so the first request is slow
-and the suite needs those models available (HF cache or network). The
-predictions log is redirected to a temporary SQLite file so the real
-``data/predictions.db`` is left untouched.
+Runs the real pipeline end-to-end via ``TestClient``: the lifespan warms the
+actual Cardiff + spaCy models, so the first request is slow and the suite needs
+those models available. The prediction log is redirected to a temporary SQLite
+file so the real ``data/predictions.db`` is left untouched.
 """
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,14 +19,10 @@ import db
 
 
 @pytest.fixture(scope="module")
-def client_and_db(tmp_path_factory):
-    """Boot the app once, with the prediction log pointed at a temp DB.
-
-    Module-scoped so the heavy model warmup in the lifespan runs a single time
-    for the whole file. ``db.DB_PATH`` is read at call time by both
-    ``init_schema`` and ``log_prediction``, so reassigning it here redirects
-    all logging for the duration of the test.
-    """
+def client_and_db(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Iterator[tuple[TestClient, Path]]:
+    """Boot the app once (module-scoped warmup) with the log pointed at a temp DB."""
     db_file = tmp_path_factory.mktemp("data") / "predictions.db"
     original = db.DB_PATH
     db.DB_PATH = db_file
@@ -36,7 +33,7 @@ def client_and_db(tmp_path_factory):
         db.DB_PATH = original
 
 
-def test_health_reports_models_warm(client_and_db):
+def test_health_reports_models_warm(client_and_db: tuple[TestClient, Path]) -> None:
     """Once the lifespan has run, /health reports the models as warm."""
     client, _ = client_and_db
     resp = client.get("/health")
@@ -46,7 +43,6 @@ def test_health_reports_models_warm(client_and_db):
     assert body["models_warm"] is True
 
 
-# Three reviews whose polarity the sentiment model classifies robustly.
 _KNOWN_POLARITY = [
     (
         "Absolutely fantastic product. It works flawlessly, exceeded my "
@@ -67,7 +63,9 @@ _KNOWN_POLARITY = [
 
 
 @pytest.mark.parametrize("text, expected_label", _KNOWN_POLARITY)
-def test_analyze_known_polarity(client_and_db, text, expected_label):
+def test_analyze_known_polarity(
+    client_and_db: tuple[TestClient, Path], text: str, expected_label: str
+) -> None:
     """/analyze returns the expected label and a well-formed body for clear reviews."""
     client, _ = client_and_db
     resp = client.post("/analyze", json={"text": text})
@@ -79,7 +77,9 @@ def test_analyze_known_polarity(client_and_db, text, expected_label):
     assert set(body["flags"]) == {"low_confidence", "model_agreement", "multipolarity"}
 
 
-def test_analyze_logs_one_row_per_request_and_skips_warmup(client_and_db):
+def test_analyze_logs_one_row_per_request_and_skips_warmup(
+    client_and_db: tuple[TestClient, Path]
+) -> None:
     """Each successful /analyze persists exactly one row; the warmup call is not logged."""
     client, db_file = client_and_db
 
@@ -99,14 +99,14 @@ def test_analyze_logs_one_row_per_request_and_skips_warmup(client_and_db):
     assert warmups == 0
 
 
-def test_analyze_rejects_empty_text(client_and_db):
+def test_analyze_rejects_empty_text(client_and_db: tuple[TestClient, Path]) -> None:
     """Empty text violates the request model's min_length and is rejected."""
     client, _ = client_and_db
     resp = client.post("/analyze", json={"text": ""})
     assert resp.status_code == 422
 
 
-def test_analyze_rejects_missing_body(client_and_db):
+def test_analyze_rejects_missing_body(client_and_db: tuple[TestClient, Path]) -> None:
     """A payload without the required text field is rejected."""
     client, _ = client_and_db
     resp = client.post("/analyze", json={})

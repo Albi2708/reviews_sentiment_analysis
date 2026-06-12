@@ -1,13 +1,8 @@
-"""Validate the Cardiff NLP sentiment and irony models on a sample set of reviews.
+"""Validate the Cardiff NLP sentiment + irony models on sample reviews.
 
-One-off script for roadmap item 1: confirms that both transformer models from
-the project concept load and produce sensible predictions on a small, varied
-set of customer reviews covering the phenomenon categories we care about
-(clear positive / negative / neutral, sarcasm, explicit negation, and
-multipolarity).
-
-Run with: python validate_models.py
-First run will download both models (~500 MB) into ~/.cache/huggingface/.
+One-off script: loads both models and prints label + confidence for a small,
+varied set of reviews (clear polarity, sarcasm, negation, multipolarity). Run
+with ``python validate_models.py``; the first run downloads ~500 MB of models.
 """
 from transformers import pipeline
 

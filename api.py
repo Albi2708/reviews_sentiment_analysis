@@ -1,15 +1,8 @@
 """FastAPI wrapper around the sentiment analysis pipeline.
 
-Exposes two endpoints:
-
-* ``POST /analyze`` — runs :func:`pipeline.analyze` on a single review and
-  returns the structured result documented in that function's docstring.
-* ``GET /health`` — liveness probe; also reports whether the underlying
-  models have finished warming up.
-
-Pydantic models mirror the pipeline's output schema so the auto-generated
-OpenAPI docs at ``/docs`` and ``/redoc`` are self-describing.
-
+Exposes ``POST /analyze`` (runs :func:`pipeline.analyze` on one review) and
+``GET /health`` (liveness + model-warmup status). Pydantic models mirror the
+pipeline's output schema so the OpenAPI docs at ``/docs`` are self-describing.
 Run with ``make run`` or ``uvicorn api:app --reload``.
 """
 from __future__ import annotations
@@ -23,10 +16,6 @@ from pydantic import BaseModel, Field
 
 import db
 from pipeline import Label, analyze
-
-# --- Pydantic schemas ------------------------------------------------------
-# Schemas mirror the dict returned by :func:`pipeline.analyze` one-to-one so
-# the OpenAPI surface and the in-process Python surface stay in lockstep.
 
 IronyLabel = Literal["irony", "non_irony"]
 
@@ -43,11 +32,7 @@ class AnalyzeRequest(BaseModel):
 
 
 class Flags(BaseModel):
-    """Boolean validation flags raised by the pipeline.
-
-    Mirrors :func:`pipeline.analyze`'s ``flags`` block; see that function's
-    docstring for the precise semantics and branch precedence rules.
-    """
+    """Boolean validation flags; see :func:`pipeline.analyze` for semantics."""
 
     low_confidence: bool
     model_agreement: bool
@@ -63,11 +48,7 @@ class SentimentDistribution(BaseModel):
 
 
 class SentimentRaw(BaseModel):
-    """Pre-correction sentiment-model output.
-
-    Useful when ``flags.model_agreement`` is True and the top-level
-    ``label`` may have been overridden by the irony branch.
-    """
+    """Pre-correction sentiment-model output (the label before any irony override)."""
 
     label: Label
     confidence: float
@@ -90,10 +71,7 @@ class Segment(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
-    """Response model for ``POST /analyze``.
-
-    Identical in shape to :func:`pipeline.analyze`'s return value.
-    """
+    """Response for ``POST /analyze``; mirrors :func:`pipeline.analyze`'s return value."""
 
     text: str
     preprocessed_text: str
@@ -106,7 +84,7 @@ class AnalyzeResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    """Response model for ``GET /health``."""
+    """Response for ``GET /health``."""
 
     status: Literal["ok"]
     models_warm: bool = Field(
@@ -118,21 +96,16 @@ class HealthResponse(BaseModel):
     )
 
 
-# --- App setup -------------------------------------------------------------
-
 _models_warm = False
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Initialize the prediction log schema and warm the pipeline.
+    """Create the prediction-log schema, then warm the pipeline.
 
-    ``db.init_schema()`` runs first so a broken DB surfaces as a startup
-    error rather than a silent loss of rows at request time. The warmup
-    ``analyze("warmup")`` call then forces the three lazy
-    ``functools.cache`` singletons in ``pipeline.py`` (sentiment, irony,
-    spaCy) to load before the server accepts traffic; that warmup call
-    is internal and is **not** logged to the predictions table.
+    ``db.init_schema()`` runs first so a broken DB fails startup loudly. The
+    warmup ``analyze("warmup")`` forces the cached model singletons to load
+    before traffic arrives; that call is not logged.
     """
     global _models_warm
     db.init_schema()
@@ -153,8 +126,6 @@ app = FastAPI(
 )
 
 
-# --- Endpoints -------------------------------------------------------------
-
 @app.post(
     "/analyze",
     response_model=AnalyzeResponse,
@@ -163,15 +134,10 @@ app = FastAPI(
 def analyze_endpoint(payload: AnalyzeRequest) -> dict:
     """Run the pipeline on ``payload.text`` and return the full result.
 
-    Declared as a sync handler on purpose: HuggingFace inference is
-    blocking, and FastAPI dispatches sync endpoints to a threadpool, so
-    the event loop is not stalled while a request is in flight.
-
-    Side effect: persists one row to the predictions log via
-    :func:`db.log_prediction`. The latency reported there is the
-    pipeline-only ``analyze()`` duration in milliseconds — it excludes
-    request parsing and response serialization. Logging failures do not
-    propagate to the client.
+    Sync handler on purpose: HuggingFace inference is blocking and FastAPI
+    dispatches sync endpoints to a threadpool. Persists one row via
+    :func:`db.log_prediction` (latency is the pipeline-only ``analyze()``
+    duration in ms); logging failures do not propagate to the client.
     """
     start = time.perf_counter()
     result = analyze(payload.text)

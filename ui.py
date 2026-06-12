@@ -1,17 +1,8 @@
 """Streamlit UI on top of the FastAPI sentiment analysis endpoint.
 
-Two tabs:
-
-* **Single review** — free-text area; submitting calls ``POST /analyze`` and
-  renders the resolved label, confidence, flags, per-segment breakdown, and
-  raw model provenance.
-* **Batch CSV** — upload a CSV with a ``text`` column (other columns
-  ignored); each row is sent through ``/analyze``; results are shown as a
-  flat table and offered as a CSV download.
-
-The UI talks to the API over HTTP — configure with the ``API_URL`` env var
-(default ``http://localhost:8000``). Start the API with ``make run`` and
-the UI with ``make ui`` (or ``streamlit run ui.py``).
+Two tabs: a single-review text area and a batch CSV uploader (CSV needs a
+``text`` column). Both call ``POST /analyze`` over HTTP; configure the target
+with the ``API_URL`` env var (default ``http://localhost:8000``).
 """
 from __future__ import annotations
 
@@ -22,17 +13,13 @@ import pandas as pd
 import requests
 import streamlit as st
 
-# --- Config ----------------------------------------------------------------
-
 API_URL: str = os.environ.get("API_URL", "http://localhost:8000").rstrip("/")
 ANALYZE_ENDPOINT: str = f"{API_URL}/analyze"
 HEALTH_ENDPOINT: str = f"{API_URL}/health"
 
-# Generous timeout: covers the worst-case first request when the API is
-# still warming. After lifespan completes, real latency is sub-second.
+# Generous timeout to cover the API's first (cold) request.
 REQUEST_TIMEOUT_SECONDS: float = 30.0
 
-# Display colors for the resolved 3-class label.
 LABEL_COLOR: dict[str, str] = {
     "positive": "#1f9e3a",
     "neutral": "#6b7280",
@@ -40,14 +27,8 @@ LABEL_COLOR: dict[str, str] = {
 }
 
 
-# --- HTTP wrappers ---------------------------------------------------------
-
 def analyze_review(text: str) -> dict[str, Any]:
-    """Call ``POST /analyze`` and return the parsed JSON body.
-
-    Raises ``requests.RequestException`` on connection failure or non-2xx
-    response.
-    """
+    """Call ``POST /analyze`` and return the parsed JSON; raises on non-2xx."""
     response = requests.post(
         ANALYZE_ENDPOINT,
         json={"text": text},
@@ -69,10 +50,8 @@ def check_health() -> tuple[bool, str]:
     return True, "models warm" if warm else "models warming"
 
 
-# --- Rendering helpers -----------------------------------------------------
-
 def _render_flags(flags: dict[str, bool]) -> None:
-    """Render the boolean flag block as Streamlit colored-text markdown."""
+    """Render the boolean flag block as colored-text markdown."""
     parts: list[str] = []
     if flags["low_confidence"]:
         parts.append(":orange[**low confidence**]")
@@ -145,8 +124,6 @@ def flatten_for_csv(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# --- Layout ----------------------------------------------------------------
-
 st.set_page_config(page_title="Review Sentiment Analysis", layout="wide")
 st.title("Customer Review Sentiment Analysis")
 st.caption(
@@ -165,8 +142,6 @@ with st.sidebar:
         st.caption("Start the API with `make run`.")
 
 single_tab, batch_tab = st.tabs(["Single review", "Batch CSV"])
-
-# --- Single review tab -----------------------------------------------------
 
 with single_tab:
     with st.form("single_review_form", clear_on_submit=False):
@@ -193,8 +168,6 @@ with single_tab:
         st.error(f"API call failed: {st.session_state['single_error']}")
     elif st.session_state.get("single_result"):
         render_result(st.session_state["single_result"])
-
-# --- Batch CSV tab ---------------------------------------------------------
 
 with batch_tab:
     st.write(

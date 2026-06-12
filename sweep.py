@@ -1,38 +1,18 @@
-"""Threshold sweep harness for the review sentiment pipeline (roadmap item 10).
+"""Threshold sweep harness for the review sentiment pipeline.
 
 Caches the expensive per-review model outputs once (full-review sentiment +
-irony + per-segment sentiment) and replays the validator branch logic across
-varying threshold settings. Avoids re-running the transformers per threshold.
-
-Three independent one-at-a-time sweeps around the locked values in
-``pipeline.py``:
+irony + per-segment sentiment) and replays the validator logic across varying
+threshold settings, avoiding a re-run of the transformers per setting. Sweeps
+each of the three locked thresholds one at a time:
 
 * ``LOW_CONF_THRESHOLD``        0.40 .. 0.90 step 0.10
 * ``IRONY_HIGH_CONF_THRESHOLD`` 0.40 .. 0.90 step 0.10
 * ``MULTIPOLARITY_TOP_CLASS_THRESHOLD`` 0.30 .. 0.60 step 0.05
 
-Per setting, the harness reports the flagged-set size, error rate overall
-and split flagged/unflagged, macro-F1, and (for the irony / multipolarity
-sweeps) the size and accuracy of the branch's engaged subset.
-
-Output layout (under ``--out-dir``, default ``results/sweep/``):
-
-    results/sweep/
-      cache/
-        amazon.json
-        phenomenon.json
-      amazon/
-        low_conf.csv
-        irony_high.csv
-        multipolarity.csv
-        report.txt
-      phenomenon/
-        ...
-
-A parity self-check runs ``pipeline.analyze`` on a handful of samples and
-asserts the replay reproduces label, confidence, and all flags at the
-locked threshold values. Mismatch aborts the sweep — the cache is only
-valid if the replay matches ``analyze`` by construction.
+Writes per-threshold CSVs and a ``report.txt`` under ``--out-dir`` (default
+``results/sweep/``), plus a JSON cache under ``cache/``. A parity self-check
+asserts the replay reproduces ``pipeline.analyze`` at the locked values before
+sweeping; a mismatch aborts the run.
 """
 from __future__ import annotations
 
@@ -65,22 +45,16 @@ from pipeline import (
     preprocess,
 )
 
-# --- Sweep grids -----------------------------------------------------------
-
 LOW_CONF_GRID: tuple[float, ...] = (0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 IRONY_HIGH_GRID: tuple[float, ...] = (0.40, 0.50, 0.60, 0.70, 0.80, 0.90)
 MULTIPOLARITY_GRID: tuple[float, ...] = (0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60)
 
 
-# --- Cache builder ---------------------------------------------------------
-
 def _build_entry(text: str) -> dict[str, Any]:
     """Run preprocessor + both models + segment scoring on a single review.
 
-    Segments are always computed (sentencer with the same clause-split
-    fallback as ``pipeline.analyze``) so the cache can replay any
-    ``MULTIPOLARITY_TOP_CLASS_THRESHOLD`` setting without re-running the
-    sentiment model on segments.
+    Segments are always computed (same clause-split fallback as
+    ``pipeline.analyze``) so the cache can replay any multipolarity threshold.
     """
     prep = preprocess(text)
     model_input = prep["model_input"]
@@ -119,6 +93,7 @@ def build_cache(rows: list[dict[str, str]], label: str) -> list[dict[str, Any]]:
 
 
 def save_cache(cache: list[dict[str, Any]], path: Path, meta: dict[str, Any]) -> None:
+    """Write the cache entries plus their ``meta`` to ``path`` as JSON."""
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"meta": meta, "entries": cache}
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
@@ -138,8 +113,6 @@ def load_cache(path: Path, expected_meta: dict[str, Any]) -> list[dict[str, Any]
     return payload.get("entries")
 
 
-# --- Replay (must match pipeline.analyze at locked thresholds) -------------
-
 def resolve(
     entry: dict[str, Any],
     low_conf: float,
@@ -148,8 +121,8 @@ def resolve(
 ) -> dict[str, Any]:
     """Replay the validator branch logic given cached predictions.
 
-    Mirrors the label-resolution code at the bottom of ``pipeline.analyze``
-    1:1. The parity self-check in ``_self_check`` enforces this invariant.
+    Mirrors the label-resolution code in ``pipeline.analyze`` 1:1; the parity
+    self-check in ``_self_check`` enforces the invariant.
     """
     sentiment_raw = entry["sentiment_raw"]
     irony_pred = entry["irony"]
@@ -200,12 +173,7 @@ def resolve(
 
 
 def _self_check(cache: list[dict[str, Any]], n_samples: int = 5) -> None:
-    """Assert replay at locked thresholds equals ``analyze`` on a sample.
-
-    Picks up to ``n_samples`` deterministically (first slice — the rows are
-    already in arbitrary order). On mismatch, prints a diff and raises so
-    the sweep doesn't produce results from a broken replay.
-    """
+    """Assert replay at locked thresholds equals ``analyze`` on a sample, else abort."""
     print(f"  parity self-check ({min(n_samples, len(cache))} samples) ...")
     for i, entry in enumerate(cache[:n_samples]):
         replay = resolve(
@@ -240,8 +208,6 @@ def _self_check(cache: list[dict[str, Any]], n_samples: int = 5) -> None:
     print("  parity OK")
 
 
-# --- Metric computation ----------------------------------------------------
-
 def _split_errors(
     y_true: list[str], y_pred: list[str], mask: list[bool]
 ) -> tuple[float, float, int, int]:
@@ -264,7 +230,7 @@ def sweep_low_conf(
     irony_high: float,
     multi_thr: float,
 ) -> list[dict[str, Any]]:
-    """Vary LOW_CONF; keep other thresholds at locked values."""
+    """Vary LOW_CONF; keep the other thresholds at locked values."""
     y_true = [e["expected_label"] for e in cache]
     rows: list[dict[str, Any]] = []
     for thr in LOW_CONF_GRID:
@@ -328,12 +294,7 @@ def sweep_multipolarity(
     low_conf: float,
     irony_high: float,
 ) -> list[dict[str, Any]]:
-    """Vary MULTIPOLARITY; report engaged-branch size + accuracy split.
-
-    Adds a finer breakdown on the phenomenon set: how many of the
-    expected-negative multipolar reviews engage the branch and end up
-    correctly labeled. That's the direct measurement for finding (1).
-    """
+    """Vary MULTIPOLARITY; add a negative-ending multipolar breakdown."""
     y_true = [e["expected_label"] for e in cache]
     is_neg_multi = [
         e.get("category") == "multipolarity" and e["expected_label"] == "negative"
@@ -377,9 +338,8 @@ def sweep_multipolarity(
     return rows
 
 
-# --- Output writers --------------------------------------------------------
-
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    """Write ``rows`` (list of dicts) as a CSV at ``path``; no-op if empty."""
     if not rows:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -397,9 +357,8 @@ def _fmt_table(
 ) -> str:
     """Render a list of dicts as an aligned ASCII table.
 
-    ``columns`` is a list of (key, header, format_string) — the format
-    string is applied via ``format(value, fmt)``. Empty fmt prints the
-    value as-is.
+    ``columns`` is a list of (key, header, format_string); the format string
+    is applied via ``format(value, fmt)`` (empty fmt prints as-is).
     """
     widths = [max(len(hdr), 6) for _, hdr, _ in columns]
     for r in rows:
@@ -428,6 +387,7 @@ def write_report(
     multi_rows: list[dict[str, Any]],
     include_neg_multi: bool,
 ) -> None:
+    """Write the three per-threshold CSVs and a combined ASCII report under ``out_dir``."""
     out_dir.mkdir(parents=True, exist_ok=True)
     _write_csv(out_dir / "low_conf.csv", low_conf_rows)
     _write_csv(out_dir / "irony_high.csv", irony_rows)
@@ -506,11 +466,10 @@ def write_report(
     (out_dir / "report.txt").write_text("\n".join(sections) + "\n", encoding="utf-8")
 
 
-# --- Per-dataset drivers ---------------------------------------------------
-
 def _ensure_cache_phenomenon(
     cache_path: Path, csv_path: Path, rebuild: bool
 ) -> list[dict[str, Any]]:
+    """Load the phenomenon cache if its meta matches, else rebuild and save it."""
     meta = {"dataset": "phenomenon", "csv": str(csv_path)}
     if not rebuild:
         cached = load_cache(cache_path, meta)
@@ -531,6 +490,7 @@ def _ensure_cache_amazon(
     seed: int,
     rebuild: bool,
 ) -> list[dict[str, Any]]:
+    """Load the Amazon cache if its meta matches, else rebuild and save it."""
     meta = {
         "dataset": "amazon",
         "sample_size": sample_size,
@@ -555,6 +515,7 @@ def run_dataset(
     dataset_label: str,
     include_neg_multi: bool,
 ) -> None:
+    """Self-check, run the three sweeps, and write the report for one dataset."""
     print(f"\n== Sweeping {dataset_label} ({len(cache)} reviews) ==")
     _self_check(cache)
 
@@ -583,9 +544,8 @@ def run_dataset(
     print((out_dir / "report.txt").read_text(encoding="utf-8"))
 
 
-# --- CLI -------------------------------------------------------------------
-
 def main() -> None:
+    """Parse CLI flags and run the requested threshold sweep(s)."""
     parser = argparse.ArgumentParser(
         description="Threshold sweep harness for the sentiment pipeline."
     )
