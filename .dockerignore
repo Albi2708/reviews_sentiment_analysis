@@ -1,0 +1,16 @@
+.venv/
+.git/
+.gitignore
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+data/
+results/
+tests/
+Dev Docs/
+.claude/
+*.md
+Dockerfile
+docker-compose.yml
+.dockerignore

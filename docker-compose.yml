@@ -1,0 +1,40 @@
+# One-command run of the full stack: `docker compose up --build`.
+# Both services share one image (built once, layer-cached); the API serves the
+# pipeline and the UI talks to it over the internal network.
+services:
+  api:
+    build: .
+    image: review-sentiment:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - prediction-data:/app/data
+    healthcheck:
+      # Healthy only once the models are warm, so the UI waits for a ready API.
+      test: ["CMD", "python", "-c", "import urllib.request,json,sys; sys.exit(0 if json.load(urllib.request.urlopen('http://localhost:8000/health')).get('models_warm') else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  ui:
+    build: .
+    image: review-sentiment:latest
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - API_URL=http://api:8000
+    ports:
+      - "8501:8501"
+    command:
+      - streamlit
+      - run
+      - ui.py
+      - --server.port=8501
+      - --server.address=0.0.0.0
+      - --server.headless=true
+      - --browser.gatherUsageStats=false
+
+volumes:
+  prediction-data:

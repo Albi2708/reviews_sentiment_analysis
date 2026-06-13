@@ -31,11 +31,6 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Local-only project files (not for the public repo)
-CLAUDE.md
-Dev Docs/
-.claude/
-
 # Data — never committed; populated locally
 data/
 
