@@ -1,0 +1,84 @@
+{
+  "n": 45,
+  "accuracy": 0.6666666666666666,
+  "macro_f1": 0.47003367003366997,
+  "labels": [
+    "negative",
+    "neutral",
+    "positive"
+  ],
+  "per_class": {
+    "negative": {
+      "precision": 0.896551724137931,
+      "recall": 0.7027027027027027,
+      "f1": 0.7878787878787878,
+      "support": 37
+    },
+    "neutral": {
+      "precision": 0.16666666666666666,
+      "recall": 0.3333333333333333,
+      "f1": 0.2222222222222222,
+      "support": 3
+    },
+    "positive": {
+      "precision": 0.3,
+      "recall": 0.6,
+      "f1": 0.4,
+      "support": 5
+    }
+  },
+  "confusion_matrix": [
+    [
+      26,
+      4,
+      7
+    ],
+    [
+      2,
+      1,
+      0
+    ],
+    [
+      1,
+      1,
+      3
+    ]
+  ],
+  "source": "tests\\fixtures\\phenomenon_reviews.csv",
+  "per_category": {
+    "irony": {
+      "n": 10,
+      "accuracy": 0.6,
+      "predicted": {
+        "negative": 6,
+        "neutral": 3,
+        "positive": 1
+      }
+    },
+    "sarcasm": {
+      "n": 10,
+      "accuracy": 1.0,
+      "predicted": {
+        "negative": 10
+      }
+    },
+    "negation": {
+      "n": 10,
+      "accuracy": 0.7,
+      "predicted": {
+        "positive": 1,
+        "negative": 8,
+        "neutral": 1
+      }
+    },
+    "multipolarity": {
+      "n": 15,
+      "accuracy": 0.4666666666666667,
+      "predicted": {
+        "negative": 5,
+        "positive": 8,
+        "neutral": 2
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+source     = tests\fixtures\phenomenon_reviews.csv
+n          = 45
+accuracy   = 0.6667
+macro-F1   = 0.4700
+
+Per-class metrics:
+  negative   precision=0.897  recall=0.703  f1=0.788  support=37
+  neutral    precision=0.167  recall=0.333  f1=0.222  support=3
+  positive   precision=0.300  recall=0.600  f1=0.400  support=5
+
+Confusion matrix (rows=true, cols=pred):
+                negative    neutral   positive
+  true_negative        26          4          7
+  true_neutral          2          1          0
+  true_positive         1          1          3
+
+Per-category breakdown:
+  irony          n=10  accuracy=0.600  predicted: negative=6, neutral=3, positive=1
+  sarcasm        n=10  accuracy=1.000  predicted: negative=10, neutral=0, positive=0
+  negation       n=10  accuracy=0.700  predicted: negative=8, neutral=1, positive=1
+  multipolarity  n=15  accuracy=0.467  predicted: negative=5, neutral=2, positive=8

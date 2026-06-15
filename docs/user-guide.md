@@ -2,7 +2,7 @@
 
 This guide walks through using the Customer Review Sentiment Analysis tool, both from the web
 interface and directly from the API. For installation and how to start the services, see the
-[development guide](development.md).
+[README.md](README.md).
 
 ## What the tool does
 
