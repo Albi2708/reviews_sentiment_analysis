@@ -85,7 +85,7 @@ curl -X POST http://localhost:8000/analyze \
 
 The response includes the resolved `label` and `confidence`, the `flags` object, the per-segment
 `segments` list (when multipolar), and the raw `sentiment_raw` and `irony` outputs for
-transparency. The full field-by-field schema is in the [architecture doc](architecture.md#output-contract).
+transparency. The full field-by-field schema is in the [README's API section](../README.md#api).
 
 ### Check health
 

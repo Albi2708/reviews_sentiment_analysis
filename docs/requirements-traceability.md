@@ -144,5 +144,5 @@ weakness on the phenomenon set and is recorded as future work in
 All mandatory requirements are satisfied with a working mechanism and measured evidence. The
 limitations are real and documented rather than hidden: they cluster on the neutral class and on
 reviews the off-the-shelf model gets wrong with high confidence. For the underlying design
-rationale see the [architecture doc](architecture.md) and the [ADRs](adr/); for the evaluation
+rationale see the [ADRs](adr/); for the evaluation
 methodology and full numbers see `results/`.

@@ -8,7 +8,8 @@ carries a confidence score and validation flags so its reliability can be judged
 The system is split into a thin Streamlit UI, a stateless FastAPI service, and a model layer, so
 any component can be swapped independently (e.g. replacing the sentiment model with a fine-tuned
 variant requires no UI or API change). For day-to-day use see the [user guide](docs/user-guide.md);
-for the design rationale see the [architecture doc](docs/architecture.md).
+for the design rationale see the *Architecture* section below and the
+[architecture decision records](docs/adr/).
 
 ## Highlights
 
