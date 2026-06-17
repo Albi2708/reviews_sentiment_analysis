@@ -30,21 +30,6 @@ for the design rationale see the *Architecture* section below and the
 - **Evaluation harness.** Accuracy, macro-F1, and confusion matrices on both a labeled public
   dataset and a curated phenomenon test set.
 
-## Architecture
-
-```
-        Browser
-           │
-      Streamlit UI  ──REST/JSON──▶  FastAPI service ──▶  Preprocessor (ftfy + spaCy)
-        (ui.py)                       (api.py)        ──▶  Sentiment model ┐
-                                          │                Irony model     ┘──▶ Validator
-                                          │                                       │
-                                          └────────────────────────────────▶  SQLite log
-```
-
-`pipeline.py` composes preprocessing → both models → validator behind a single `analyze(text)`
-entry point. The API wraps it; the UI calls the API over HTTP.
-
 ## Setup
 
 **Prerequisites:** **Docker** (with Compose v2) for the one-command run, *or* **Python 3.10+**
