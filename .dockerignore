@@ -8,8 +8,6 @@ __pycache__/
 data/
 results/
 tests/
-Dev Docs/
-.claude/
 *.md
 Dockerfile
 docker-compose.yml
